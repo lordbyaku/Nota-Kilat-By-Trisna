@@ -126,6 +126,14 @@
   .sw-formal{ background:linear-gradient(90deg,#1c2541 55%, #d8d2c2 55%); }
   .sw-berwarna{ background:linear-gradient(90deg,#2e7d5b, #d88a8a); }
 
+  /* Invoice Format */
+  .inv-col-row{ display:flex; gap:10px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+  .inv-col-row select{ flex:1; min-width:90px; }
+  .inv-col-row .inv-col-word{ flex:1; min-width:80px; }
+  .inv-col-row .inv-col-sample{ color:var(--ink-soft); font-family:var(--mono); font-size:.82rem; min-width:50px; }
+  .inv-col-row .inv-col-sep{ color:var(--ink-soft); font-size:1.1rem; }
+  .preview-box{ background:#0b0f19; border:1px solid var(--paper-line); border-radius:8px; padding:12px 16px; font-family:var(--mono); font-size:1rem; text-align:center; margin-top:12px; }
+
   /* Signature pad */
   .sig-pad-wrap{ border:1px dashed var(--ink-soft); border-radius:8px; background:var(--paper); }
   #sigPad{ display:block; width:100%; height:150px; touch-action:none; cursor:crosshair; }
@@ -150,8 +158,24 @@
   .tk-ads-marquee a{ color:#fff; text-decoration:none; margin-right:60px; }
   .tk-ads-marquee a:hover{ text-decoration:underline; }
   @keyframes tk-ads-scroll{ 0%{ transform:translateX(0); } 100%{ transform:translateX(-100%); } }
+
+  /* Cara Pakai */
+  .guide-section{ padding:4px 0 12px; }
+  .guide-section h3{ font-size:.92rem; margin:0 0 8px; display:flex; align-items:center; gap:6px; }
+  .guide-section h3 i{ width:20px; text-align:center; color:var(--ink-soft); font-size:.82rem; }
+  .guide-section p{ font-size:.82rem; margin:6px 0; color:var(--ink); line-height:1.55; }
+  .guide-section ol{ margin:4px 0 8px; padding-left:22px; }
+  .guide-section li{ font-size:.82rem; margin:4px 0; line-height:1.5; }
+  .guide-note{ background:#fef9e7; border-left:3px solid #f1c40f; padding:8px 12px; border-radius:4px; font-size:.78rem; margin:10px 0; }
+  .guide-hr{ border:none; border-top:1px solid var(--paper-line); margin:10px 0; }
+  .guide-table{ width:100%; border-collapse:collapse; margin:8px 0; font-size:.8rem; }
+  .guide-table th{ text-align:left; font-family:var(--display); font-weight:700; padding:6px 8px; border-bottom:2px solid var(--ink-soft); }
+  .guide-table td{ padding:6px 8px; border-bottom:1px solid var(--paper-line); }
+  .guide-table code{ font-family:var(--mono); background:var(--paper-line); padding:1px 5px; border-radius:3px; font-size:.75rem; }
+  .guide-sample{ font-family:var(--mono); font-size:.85rem; color:#2e7d5b; }
+  .guide-btn{ font-family:var(--mono); font-size:.75rem; background:var(--paper-line); padding:2px 8px; border-radius:4px; }
+  .guide-btn-primary{ background:var(--ink); color:#fff; }
 </style>
-</head>
 <body>
 
 <!-- ============ MODUL IKLAN — INLINE CONFIG (fallback untuk file://) ============ -->
@@ -193,6 +217,7 @@
   <button data-tab="riwayat">Riwayat</button>
   <button data-tab="profil">Profil Usaha</button>
   <button data-tab="lisensi">Hapus Iklan</button>
+  <button data-tab="panduan">Cara Pakai</button>
 </nav>
 
 <main>
@@ -325,6 +350,22 @@
       <div class="subhint">Dipakai otomatis tiap buat invoice baru — masih bisa diganti per-invoice di tab "Buat Invoice".</div>
       <div class="template-grid" id="templateGridProfile"></div>
     </div>
+
+    <div class="card">
+      <h2>Format No. Invoice</h2>
+      <div class="subhint">Atur format nomor invoice yang akan digenerate. Setiap kolom bisa diisi: teks tetap (wording), tahun, bulan, tanggal, atau nomor urut.</div>
+      <div class="field">
+        <label>Jumlah Kolom <span style="color:var(--ink-soft);font-size:.72rem">(maks 8)</span></label>
+        <input type="number" id="invCols" min="1" max="8" value="4">
+      </div>
+      <div id="invColsContainer"></div>
+      <div class="field">
+        <label>Digit Nomor Urut</label>
+        <input type="number" id="invDigits" min="1" max="6" value="3">
+      </div>
+      <div class="preview-box" id="invPreview">INV/2026/07/001</div>
+    </div>
+
   </section>
 
   <!-- TAB: HAPUS IKLAN (PREMIUM) -->
@@ -346,9 +387,73 @@
     </div>
   </section>
 
+  <!-- TAB: CARA PAKAI -->
+  <section class="panel" id="panel-panduan">
+    <div class="card">
+      <h2><i class="fas fa-book-open" style="color:var(--ink);margin-right:6px"></i> Cara Pakai NotaKilat</h2>
+      <div class="guide-section">
+        <h3><i class="fas fa-building"></i> 1. Pengaturan Profil Usaha</h3>
+        <p>Sebelum membuat invoice pertama, isi dulu data usaha kamu di tab <strong>Profil Usaha</strong>:</p>
+        <ol>
+          <li><strong>Logo</strong> — Unggah logo usaha (format PNG/JPG, maks 1MB, persegi lebih rapi).</li>
+          <li><strong>Nama Usaha</strong> — Nama toko / perusahaan kamu.</li>
+          <li><strong>No. HP / WA</strong> — Nomor yang akan muncul di invoice dan untuk kirim invoice via WhatsApp.</li>
+          <li><strong>Email</strong> — Opsional, bisa dikosongkan.</li>
+          <li><strong>Alamat</strong> — Alamat usaha kamu.</li>
+        </ol>
+        <p>Klik <strong>Simpan Profil</strong> setelah selesai. Data tersimpan otomatis di perangkat ini.</p>
+        <p class="guide-note">💡 Nama Usaha juga dipakai untuk aktivasi Premium — pastikan penulisan persis sama saat isi kode premium.</p>
+      </div>
+      <hr class="guide-hr">
+      <div class="guide-section">
+        <h3><i class="fas fa-hashtag"></i> 2. Format No. Invoice</h3>
+        <p>Atur format nomor invoice sesuai kebutuhan di tab <strong>Profil Usaha</strong> bagian <strong>Format No. Invoice</strong>.</p>
+        <p>Tiap kolom bisa diisi dengan pilihan berikut:</p>
+        <table class="guide-table">
+          <tr><th>Kolom</th><th>Keterangan</th><th>Contoh</th></tr>
+          <tr><td><code>wording</code></td><td>Teks tetap yang kamu ketik sendiri</td><td><code>INV</code>, <code>NOTA</code></td></tr>
+          <tr><td><code>year</code></td><td>Tahun saat ini (4 digit)</td><td><code>2026</code></td></tr>
+          <tr><td><code>month</code></td><td>Bulan saat ini (2 digit)</td><td><code>07</code></td></tr>
+          <tr><td><code>date</code></td><td>Tanggal saat ini (2 digit)</td><td><code>03</code></td></tr>
+          <tr><td><code>number</code></td><td>Nomor urut otomatis (counter)</td><td><code>001</code>, <code>042</code></td></tr>
+        </table>
+        <p>Cara atur:</p>
+        <ol>
+          <li>Pilih <strong>Jumlah Kolom</strong> (maks 8).</li>
+          <li>Tiap kolom, pilih jenis dari dropdown.</li>
+          <li>Jika memilih <code>wording</code>, ketik teks yang diinginkan.</li>
+          <li>Atur <strong>Digit Nomor Urut</strong> untuk padding angka (3 = <code>001</code>, 4 = <code>0001</code>).</li>
+        </ol>
+        <p class="guide-note">💡 Contoh format 4 kolom: <code>INV</code> / <code>2026</code> / <code>07</code> / <code>001</code> → <strong class="guide-sample">INV/2026/07/001</strong></p>
+      </div>
+      <hr class="guide-hr">
+      <div class="guide-section">
+        <h3><i class="fas fa-file-invoice"></i> 3. Membuat Invoice</h3>
+        <p>Setelah profil terisi, buka tab <strong>Buat Invoice</strong> dan ikuti langkah berikut:</p>
+        <ol>
+          <li><strong>Template</strong> — Pilih template tampilan invoice (Minimalis, Formal, atau Berwarna). Bisa diganti per-invoice.</li>
+          <li><strong>Data Klien</strong> — Isi nama, no HP (opsional untuk kirim WA), dan alamat klien.</li>
+          <li><strong>Tanggal &amp; Jatuh Tempo</strong> — Tanggal invoice dan batas pembayaran.</li>
+          <li><strong>Item</strong> — Tambah item dengan klik <span class="guide-btn">+ Baris Baru</span>. Isi deskripsi, qty, dan harga.</li>
+          <li><strong>Diskon &amp; Pajak</strong> — Otomatis terhitung. Diskon dalam Rupiah, Pajak dalam persen.</li>
+          <li><strong>Catatan</strong> — Opsional, untuk pesan tambahan di invoice.</li>
+          <li><strong>Tanda Tangan</strong> — Bisa digambar langsung atau dikosongkan.</li>
+        </ol>
+        <p>Klik <span class="guide-btn guide-btn-primary">💾 Simpan &amp; Cetak</span> untuk menyimpan riwayat dan unduh PDF.</p>
+        <p class="guide-note">💡 Invois yang sudah disimpan bisa dilihat di tab <strong>Riwayat</strong>. Dari sana bisa di-print ulang, kirim via WA, atau dihapus.</p>
+      </div>
+      <hr class="guide-hr">
+      <div class="guide-section" style="border:none;padding-bottom:0">
+        <h3><i class="fas fa-star"></i> Premium / Hapus Iklan</h3>
+        <p>NotaKilat gratis tanpa batas. Jika banner dan teks promosi terasa mengganggu, aktivasi kode premium di tab <strong>Hapus Iklan</strong> untuk menghilangkannya secara permanen.</p>
+        <p>Kode premium terikat ke Nama Usaha — pastikan Nama Usaha di Profil sudah diisi persis sama seperti saat pembelian.</p>
+      </div>
+    </div>
+  </section>
+
 </main>
 
-<footer>NotaKilat — by Trisna</footer>
+<footer id="appFooter">notakilat.famstory.my.id</footer>
 
 <script>
 /* ===================== STORAGE ===================== */
@@ -436,6 +541,11 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("logoInput").addEventListener("change", onLogoSelected);
   document.getElementById("removeLogoBtn").addEventListener("click", removeLogo);
   document.getElementById("clearSigBtn").addEventListener("click", clearSignature);
+  document.getElementById("invCols").addEventListener("change", ()=>{
+    const count = Math.min(8, Math.max(1, parseInt(document.getElementById('invCols').value) || 4));
+    renderInvCols(count);
+  });
+  document.getElementById("invDigits").addEventListener("change", updateInvPreview);
   window.addEventListener("resize", resizeSignaturePad);
 });
 
@@ -458,6 +568,7 @@ function loadProfile(){
   document.getElementById("bizAddress").value = p.address || "";
   document.getElementById("bizNameHeader").textContent = p.name || "NotaKilat";
   renderLogoPreview(p.logo || null);
+  renderInvCols();
 }
 function saveProfile(){
   const existing = store.get("nk_profile", {});
@@ -466,7 +577,8 @@ function saveProfile(){
     phone: document.getElementById("bizPhone").value.trim(),
     email: document.getElementById("bizEmail").value.trim(),
     address: document.getElementById("bizAddress").value.trim(),
-    logo: existing.logo || null
+    logo: existing.logo || null,
+    invoiceFormat: existing.invoiceFormat || null
   };
   store.set("nk_profile", p);
   document.getElementById("bizNameHeader").textContent = p.name || "NotaKilat";
@@ -624,11 +736,96 @@ function renderTotals(){
 function formatRp(n){ return "Rp " + Math.round(n).toLocaleString("id-ID"); }
 function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
 
+/* ===================== INVOICE FORMAT ===================== */
+function getInvFormat(){
+  const profile = store.get("nk_profile", {});
+  if(profile.invoiceFormat) return JSON.parse(JSON.stringify(profile.invoiceFormat));
+  return {
+    columns: [
+      { type: 'wording', value: 'INV' },
+      { type: 'year' },
+      { type: 'month' },
+      { type: 'number' }
+    ],
+    digits: 3
+  };
+}
+function saveInvFormat(format){
+  const profile = store.get("nk_profile", {});
+  profile.invoiceFormat = format;
+  store.set("nk_profile", profile);
+}
+function generateInvNo(format, isPreview){
+  if(!format) format = getInvFormat();
+  const d = new Date();
+  const parts = format.columns.map(col => {
+    switch(col.type){
+      case 'wording': return col.value || '';
+      case 'year': return d.getFullYear().toString();
+      case 'month': return String(d.getMonth()+1).padStart(2,'0');
+      case 'date': return String(d.getDate()).padStart(2,'0');
+      case 'number': return String(isPreview ? 1 : invoiceCounter+1).padStart(format.digits||3,'0');
+      default: return '';
+    }
+  });
+  return parts.filter(Boolean).join('/');
+}
+function renderInvCols(overrideCount){
+  let format = getInvFormat();
+  const count = overrideCount != null
+    ? Math.min(8, Math.max(1, overrideCount))
+    : Math.min(8, Math.max(1, format.columns.length));
+  document.getElementById('invCols').value = count;
+  const digits = parseInt(document.getElementById('invDigits').value) || 3;
+  format.digits = digits;
+  while(format.columns.length < count) format.columns.push({ type: 'wording', value: '' });
+  if(format.columns.length > count) format.columns = format.columns.slice(0, count);
+  saveInvFormat(format);
+  const container = document.getElementById('invColsContainer');
+  container.innerHTML = format.columns.map((col, i) => {
+    const opts = ['wording','year','month','date','number'].map(o =>
+      `<option value="${o}"${col.type===o?' selected':''}>${o}</option>`
+    ).join('');
+    let valHtml = '';
+    const sep = i < count-1 ? '<span class="inv-col-sep">/</span>' : '';
+    if(col.type === 'wording'){
+      valHtml = `<input type="text" class="inv-col-word" value="${escapeHtml(col.value||'')}" placeholder="Teks" onchange="updateInvCol(${i},'value',this.value)">`;
+    }else if(col.type === 'number'){
+      valHtml = `<span class="inv-col-sample">${String(99).padStart(digits,'0')}</span>`;
+    }else{
+      const d=new Date();
+      const sample = col.type==='year'?d.getFullYear().toString():col.type==='month'?String(d.getMonth()+1).padStart(2,'0'):String(d.getDate()).padStart(2,'0');
+      valHtml = `<span class="inv-col-sample">${sample}</span>`;
+    }
+    return `<div class="inv-col-row"><select onchange="updateInvColType(${i},this.value)">${opts}</select>${valHtml}${sep}</div>`;
+  }).join('');
+  updateInvPreview();
+}
+function updateInvColType(idx, type){
+  let format = getInvFormat();
+  if(!format.columns[idx]) return;
+  format.columns[idx].type = type;
+  if(type !== 'wording') delete format.columns[idx].value;
+  saveInvFormat(format);
+  renderInvCols();
+}
+function updateInvCol(idx, field, value){
+  let format = getInvFormat();
+  if(!format.columns[idx]) return;
+  format.columns[idx][field] = value;
+  saveInvFormat(format);
+  updateInvPreview();
+}
+function updateInvPreview(){
+  let format = getInvFormat();
+  format.digits = parseInt(document.getElementById('invDigits').value) || 3;
+  saveInvFormat(format);
+  document.getElementById('invPreview').textContent = generateInvNo(format, true);
+}
+
 /* ===================== SAVE / PDF ===================== */
 function nextInvoiceNo(){
-  const year = new Date().getFullYear();
-  const n = invoiceCounter + 1;
-  return `INV/${year}/${String(n).padStart(3,"0")}`;
+  return generateInvNo(getInvFormat(), false);
 }
 
 function saveInvoice(){
@@ -767,8 +964,10 @@ function generatePDF(invoice, profile){
   doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(60);
   doc.text(invoice.signerName || profile.name || "Tanda tangan", 145, sigBoxY + 5);
 
-  doc.setFontSize(7.5); doc.setTextColor(140);
-  doc.text("Dibuat dengan NotaKilat — by Trisna", left, 288);
+  if(!isPremium()){
+    doc.setFontSize(7.5); doc.setTextColor(140);
+    doc.text("Dibuat di notakilat.famstory.my.id", left, 288);
+  }
 
   doc.save(`${invoice.no.replace(/\//g,"-")}.pdf`);
 }
@@ -873,7 +1072,10 @@ function renderLicenseStatus(){
 /* ===================== MODUL IKLAN ===================== */
 (function(){
   const REMOTE_CONFIG_URL = "/ads-config.json";
-  const CACHE_KEY = "tk_ads_cache_v1";
+  const SUPABASE_ADS_URL = "https://rdtlsdavzvsfiunpqehp.supabase.co/rest/v1/ads_configs";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkdGxzZGF2enZzZml1bnBxZWhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5NzQyNjYsImV4cCI6MjA5ODU1MDI2Nn0.KWsWivoVARyWoR-A0ZatgdL8F7vcux8ZHaZ7TDr1RmQ";
+  const NOTAKILAT_APP_ID = 3;
+  const CACHE_KEY = "tk_ads_cache_v2";
   const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
   const FETCH_TIMEOUT_MS = 4000;
 
@@ -936,6 +1138,8 @@ function renderLicenseStatus(){
   function hideAds(){
     document.getElementById("tkAdsBanner").style.display = "none";
     document.getElementById("tkAdsMarquee").style.display = "none";
+    const footer = document.getElementById("appFooter");
+    if(footer) footer.style.display = "none";
   }
   window.hideAds = hideAds; // dipanggil juga setelah aktivasi premium berhasil
 
@@ -946,23 +1150,44 @@ function renderLicenseStatus(){
     renderMarquee(data.running_text);
   }
 
-  async function fetchRemote(){
+  async function fetchSupabaseAds(){
+    try{
+      const controller = new AbortController();
+      const timeout = setTimeout(()=>controller.abort(), FETCH_TIMEOUT_MS);
+      const url = SUPABASE_ADS_URL + "?app_id=eq." + NOTAKILAT_APP_ID + "&select=banner,running_text";
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": "Bearer " + SUPABASE_ANON_KEY, "Accept": "application/json" }
+      });
+      clearTimeout(timeout);
+      if(!res.ok) return null;
+      const arr = await res.json();
+      if(!arr || arr.length === 0) return null;
+      return { banner: arr[0].banner, running_text: arr[0].running_text };
+    }catch(e){
+      return null;
+    }
+  }
+
+  async function fetchLocalJson(){
     try{
       const controller = new AbortController();
       const timeout = setTimeout(()=>controller.abort(), FETCH_TIMEOUT_MS);
       const res = await fetch(REMOTE_CONFIG_URL + "?t=" + Date.now(), { signal: controller.signal, cache: "no-store" });
       clearTimeout(timeout);
       if(!res.ok) return null;
-      const data = await res.json();
-      setCache(data);
-      return data;
-    }catch(e){
-      return null;
-    }
+      return await res.json();
+    }catch(e){ return null; }
+  }
+
+  async function fetchRemote(){
+    const data = await fetchSupabaseAds() || await fetchLocalJson();
+    if(data){ setCache(data); }
+    return data;
   }
 
   window.initAds = async function initAds(){
-    if(isPremium()) return;
+    if(isPremium()){ hideAds(); return; }
     const inline = getInlineConfig();
     const cached = getCache();
     applyAds(cached || inline);
