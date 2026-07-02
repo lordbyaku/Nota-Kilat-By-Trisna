@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NotaKilat — Invoice & Kwitansi Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#1c2541;
+    --ink-soft:#3a4366;
+    --paper:#fdfbf7;
+    --paper-line:#e7e1d4;
+    --carbon:#d88a8a;
+    --carbon-soft:#f3dede;
+    --green:#2e7d5b;
+    --amber:#b8893f;
+    --mono: 'Space Mono', monospace;
+    --display: 'Space Grotesk', sans-serif;
+    --body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); line-height:1.5; }
+  body::before{
+    content:""; position:fixed; top:0; left:0; right:0; height:6px;
+    background:repeating-linear-gradient(90deg, var(--carbon) 0 24px, transparent 24px 48px);
+    opacity:.55; z-index:50;
+  }
+  header.app{
+    padding:22px 20px 16px; border-bottom:2px solid var(--ink);
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;
+  }
+  header.app h1{ font-family:var(--display); font-size:1.5rem; margin:0; letter-spacing:-.02em; }
+  header.app .tag{ font-family:var(--mono); font-size:.72rem; color:var(--ink-soft); letter-spacing:.05em; }
+  nav.tabs{ display:flex; gap:4px; padding:14px 20px 0; max-width:980px; margin:0 auto; flex-wrap:wrap; }
+  nav.tabs button{
+    font-family:var(--display); font-weight:700; font-size:.85rem;
+    background:none; border:none; padding:10px 16px; cursor:pointer;
+    color:var(--ink-soft); border-bottom:3px solid transparent;
+  }
+  nav.tabs button.active{ color:var(--ink); border-bottom:3px solid var(--carbon); }
+  main{ max-width:980px; margin:0 auto; padding:20px; }
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+
+  .card{ background:#fff; border:1px solid var(--paper-line); border-radius:10px; padding:20px; margin-bottom:18px; }
+  .card h2{ font-family:var(--display); font-size:1rem; margin:0 0 14px; display:flex; align-items:center; gap:8px; }
+  .card h2 .no{ font-family:var(--mono); color:var(--carbon); }
+  .card .subhint{ font-family:var(--mono); font-size:.72rem; color:var(--ink-soft); margin:-8px 0 14px; }
+
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:640px){ .grid2{ grid-template-columns:1fr; } }
+
+  label{ display:block; font-size:.78rem; color:var(--ink-soft); margin-bottom:4px; font-weight:600; }
+  input, textarea, select{
+    width:100%; padding:9px 10px; border:1px solid var(--paper-line); border-radius:6px;
+    font-family:var(--body); font-size:.92rem; background:var(--paper); color:var(--ink);
+  }
+  input:focus, textarea:focus, select:focus{ outline:2px solid var(--carbon); outline-offset:1px; }
+  .field{ margin-bottom:12px; }
+
+  table.items{ width:100%; border-collapse:collapse; margin-top:8px; }
+  table.items th{
+    font-family:var(--mono); font-size:.7rem; text-transform:uppercase; letter-spacing:.05em;
+    text-align:left; color:var(--ink-soft); padding:6px 6px; border-bottom:1px solid var(--ink);
+  }
+  table.items td{ padding:6px; vertical-align:top; }
+  table.items input{ padding:7px 8px; font-size:.88rem; }
+  .qty-col{ width:70px; } .price-col{ width:130px; } .sub-col{ width:120px; text-align:right; font-family:var(--mono); }
+  .del-row{ background:none; border:none; color:#b04a4a; cursor:pointer; font-size:1rem; padding:4px 8px; }
+  .add-row{
+    margin-top:8px; background:none; border:1px dashed var(--ink-soft); border-radius:6px;
+    padding:8px 14px; font-family:var(--mono); font-size:.8rem; cursor:pointer; color:var(--ink-soft);
+  }
+  .add-row:hover{ border-color:var(--ink); color:var(--ink); }
+
+  .totals{ margin-top:14px; margin-left:auto; max-width:280px; }
+  .totals .row{ display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:.9rem; }
+  .totals .row.total{ font-family:var(--mono); font-weight:700; font-size:1.1rem; border-top:2px solid var(--ink); margin-top:6px; padding-top:8px; }
+
+  .btn{ font-family:var(--display); font-weight:700; font-size:.88rem; cursor:pointer; border-radius:7px; padding:11px 18px; border:none; }
+  .btn-primary{ background:var(--ink); color:#fff; }
+  .btn-primary:hover{ background:var(--ink-soft); }
+  .btn-ghost{ background:none; border:1px solid var(--ink-soft); color:var(--ink); }
+  .btn-wa{ background:#2e7d5b; color:#fff; }
+  .btn-row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+  .btn-sm{ padding:8px 12px; font-size:.78rem; }
+
+  .history-item{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--paper-line); flex-wrap:wrap; }
+  .history-item .meta .num{ font-family:var(--mono); font-size:.85rem; color:var(--ink-soft); }
+  .history-item .meta .client{ font-weight:700; }
+  .history-item .meta .amt{ font-family:var(--mono); }
+  .badge{ font-family:var(--mono); font-size:.65rem; padding:2px 8px; border-radius:10px; }
+  .badge.lunas{ background:#e3efe8; color:var(--green); }
+  .badge.belum{ background:#fbe9d8; color:var(--amber); }
+  .hist-actions button{ font-size:.78rem; padding:6px 10px; }
+
+  .empty{ text-align:center; padding:40px 10px; color:var(--ink-soft); font-family:var(--mono); font-size:.85rem; }
+
+  .license-box{ max-width:460px; }
+  .license-status{ font-family:var(--mono); font-size:.85rem; padding:10px; border-radius:6px; margin-top:10px; }
+  footer{ text-align:center; padding:30px 10px 50px; font-family:var(--mono); font-size:.72rem; color:var(--ink-soft); }
+
+  /* Logo upload */
+  .logo-row{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .logo-preview{
+    width:64px; height:64px; border-radius:8px; border:1px dashed var(--ink-soft);
+    display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; background:var(--paper);
+  }
+  .logo-preview img{ width:100%; height:100%; object-fit:contain; }
+  .logo-preview .ph{ font-family:var(--mono); font-size:.6rem; color:var(--ink-soft); text-align:center; padding:4px; }
+  .logo-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+
+  /* Template picker */
+  .template-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:6px; }
+  @media (max-width:640px){ .template-grid{ grid-template-columns:1fr; } }
+  .template-card{ border:2px solid var(--paper-line); border-radius:8px; padding:10px; cursor:pointer; background:#fff; }
+  .template-card.selected{ border-color:var(--ink); box-shadow:0 0 0 1px var(--ink); }
+  .template-card .swatch{ height:44px; border-radius:5px; margin-bottom:8px; }
+  .template-card .name{ font-family:var(--display); font-weight:700; font-size:.8rem; }
+  .template-card .desc{ font-family:var(--mono); font-size:.65rem; color:var(--ink-soft); margin-top:2px; }
+  .sw-minimal{ background:#1c2541; }
+  .sw-formal{ background:linear-gradient(90deg,#1c2541 55%, #d8d2c2 55%); }
+  .sw-berwarna{ background:linear-gradient(90deg,#2e7d5b, #d88a8a); }
+
+  /* Signature pad */
+  .sig-pad-wrap{ border:1px dashed var(--ink-soft); border-radius:8px; background:var(--paper); }
+  #sigPad{ display:block; width:100%; height:150px; touch-action:none; cursor:crosshair; }
+  .sig-hint{ font-family:var(--mono); font-size:.68rem; color:var(--ink-soft); margin-top:6px; }
+  .sig-actions{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+
+  /* ============ MODUL IKLAN ============ */
+  .tk-ads-banner{
+    display:none; max-width:980px; margin:4px auto 0; border-radius:10px; overflow:hidden;
+    background:var(--carbon-soft); position:relative;
+  }
+  .tk-ads-banner a{ display:block; line-height:0; }
+  .tk-ads-banner img{ width:100%; height:auto; display:block; aspect-ratio:4/1; object-fit:cover; }
+  @media (max-width:640px){ .tk-ads-banner img{ aspect-ratio:3/1; } }
+
+  .tk-ads-marquee{
+    display:none; overflow:hidden; white-space:nowrap; background:var(--ink); color:#fff;
+    font-family:var(--mono); font-size:.72rem; padding:6px 0;
+    position:sticky; top:0; z-index:40;
+  }
+  .tk-ads-marquee .tk-ads-track{ display:inline-block; padding-left:100%; animation: tk-ads-scroll 45s linear infinite; }
+  .tk-ads-marquee a{ color:#fff; text-decoration:none; margin-right:60px; }
+  .tk-ads-marquee a:hover{ text-decoration:underline; }
+  @keyframes tk-ads-scroll{ 0%{ transform:translateX(0); } 100%{ transform:translateX(-100%); } }
+</style>
+</head>
+<body>
+
+<!-- ============ MODUL IKLAN — INLINE CONFIG (fallback untuk file://) ============ -->
+<script id="tkAdsInlineConfig" type="application/json">
+{
+  "banner": {
+    "id": "banner-tokopos-laundrypos",
+    "image": "/images/banner-tokopos.jpg",
+    "text": "Punya usaha toko atau laundry juga? Coba TokoPOS & LaundryPOS — kasir offline, sekali bayar.",
+    "link": "https://wa.me/628562717803?text=Halo%2C%20saya%20mau%20tanya%20TokoPOS%20%2F%20LaundryPOS"
+  },
+  "running_text": [
+    { "id": "rt-tokopos", "text": "📦 TokoPOS — kasir toko offline, sekali bayar, seumur hidup, Bisa jalan tanpa akses internet", "link": "https://wa.me/628562717803?text=Halo%2C%20mau%20tanya%20TokoPOS" },
+    { "id": "rt-laundrypos", "text": "🧺 LaundryPOS — kelola antrian cucian & notifikasi Whatsapp ke pelanggan", "link": "https://wa.me/628562717803?text=Halo%2C%20mau%20tanya%20LaundryPOS" }
+  ]
+}
+</script>
+<!-- ============ MODUL IKLAN — HTML CONTAINER ============ -->
+<div class="tk-ads-banner" id="tkAdsBanner">
+  <a id="tkAdsBannerLink" href="#" target="_blank" rel="noopener">
+    <img id="tkAdsBannerImg" src="" alt="Promo">
+  </a>
+</div>
+<div class="tk-ads-marquee" id="tkAdsMarquee">
+  <div class="tk-ads-track" id="tkAdsTrack"></div>
+</div>
+<!-- ============ END MODUL IKLAN ============ -->
+
+<header class="app">
+  <div>
+    <h1 id="bizNameHeader">NotaKilat</h1>
+    <div class="tag">Invoice &amp; kwitansi, beres dalam semenit</div>
+  </div>
+  <div class="tag" id="todayTag"></div>
+</header>
+
+<nav class="tabs">
+  <button class="active" data-tab="buat">Buat Invoice</button>
+  <button data-tab="riwayat">Riwayat</button>
+  <button data-tab="profil">Profil Usaha</button>
+  <button data-tab="lisensi">Hapus Iklan</button>
+</nav>
+
+<main>
+
+  <!-- TAB: BUAT INVOICE -->
+  <section class="panel active" id="panel-buat">
+
+    <div class="card">
+      <h2>Template untuk Invoice Ini</h2>
+      <div class="template-grid" id="templateGrid"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="no" id="invoiceNoDisplay">INV/2026/001</span></h2>
+      <div class="grid2">
+        <div class="field">
+          <label>Nama Klien</label>
+          <input type="text" id="clientName" placeholder="Nama pelanggan / perusahaan">
+        </div>
+        <div class="field">
+          <label>No. HP / WhatsApp Klien</label>
+          <input type="text" id="clientPhone" placeholder="08xxxxxxxxxx">
+        </div>
+      </div>
+      <div class="field">
+        <label>Alamat Klien (opsional)</label>
+        <input type="text" id="clientAddress" placeholder="Alamat singkat">
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Tanggal Invoice</label>
+          <input type="date" id="invoiceDate">
+        </div>
+        <div class="field">
+          <label>Jatuh Tempo</label>
+          <input type="date" id="dueDate">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Item / Jasa</h2>
+      <table class="items">
+        <thead>
+          <tr><th>Deskripsi</th><th class="qty-col">Qty</th><th class="price-col">Harga (Rp)</th><th class="sub-col">Subtotal</th><th></th></tr>
+        </thead>
+        <tbody id="itemRows"></tbody>
+      </table>
+      <button class="add-row" id="addRowBtn">+ Tambah item</button>
+
+      <div class="totals">
+        <div class="row"><span>Subtotal</span><span id="sumSubtotal">Rp 0</span></div>
+        <div class="row">
+          <span>Diskon (Rp)</span>
+          <input type="number" id="discountInput" value="0" min="0" style="width:110px; text-align:right;">
+        </div>
+        <div class="row">
+          <span>Pajak (%)</span>
+          <input type="number" id="taxInput" value="0" min="0" style="width:110px; text-align:right;">
+        </div>
+        <div class="row total"><span>Total</span><span id="sumTotal">Rp 0</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Catatan (opsional)</h2>
+      <textarea id="invoiceNote" rows="2" placeholder="Mis: pembayaran transfer ke BCA 1234567890 a.n. Trisna"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>Tanda Tangan</h2>
+      <div class="field">
+        <label>Nama Penandatangan (opsional, default nama usaha)</label>
+        <input type="text" id="signerName" placeholder="Mis: Trisna">
+      </div>
+      <div class="sig-pad-wrap">
+        <canvas id="sigPad"></canvas>
+      </div>
+      <div class="sig-hint">Gambar tanda tangan pakai jari (HP) atau mouse (komputer) di kotak di atas.</div>
+      <div class="sig-actions">
+        <button type="button" class="btn btn-ghost btn-sm" id="clearSigBtn">Hapus Tanda Tangan</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="saveBtn">Simpan & Unduh PDF</button>
+      <button class="btn btn-ghost" id="resetBtn">Reset Form</button>
+    </div>
+  </section>
+
+  <!-- TAB: RIWAYAT -->
+  <section class="panel" id="panel-riwayat">
+    <div class="card">
+      <h2>Riwayat Invoice</h2>
+      <input type="text" id="searchHist" placeholder="Cari nama klien atau nomor invoice...">
+      <div id="histList" style="margin-top:10px;"></div>
+    </div>
+  </section>
+
+  <!-- TAB: PROFIL -->
+  <section class="panel" id="panel-profil">
+    <div class="card">
+      <h2>Logo Usaha</h2>
+      <div class="logo-row">
+        <div class="logo-preview" id="logoPreview"><span class="ph">Belum ada logo</span></div>
+        <div class="logo-actions">
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+            Unggah Logo
+            <input type="file" id="logoInput" accept="image/png,image/jpeg" style="display:none;">
+          </label>
+          <button type="button" class="btn btn-ghost btn-sm" id="removeLogoBtn">Hapus Logo</button>
+        </div>
+      </div>
+      <div class="sig-hint">Format PNG/JPG, gambar persegi lebih rapi, ukuran maks ±1MB agar PDF tetap ringan.</div>
+    </div>
+
+    <div class="card">
+      <h2>Profil Usaha</h2>
+      <div class="field"><label>Nama Usaha</label><input type="text" id="bizName" placeholder="Mis: Jasa Servis AC Berkah"></div>
+      <div class="grid2">
+        <div class="field"><label>No. HP / WA</label><input type="text" id="bizPhone" placeholder="08xxxxxxxxxx"></div>
+        <div class="field"><label>Email (opsional)</label><input type="text" id="bizEmail" placeholder="usaha@email.com"></div>
+      </div>
+      <div class="field"><label>Alamat</label><input type="text" id="bizAddress" placeholder="Alamat usaha"></div>
+      <button class="btn btn-primary" id="saveProfileBtn">Simpan Profil</button>
+    </div>
+
+    <div class="card">
+      <h2>Template Default</h2>
+      <div class="subhint">Dipakai otomatis tiap buat invoice baru — masih bisa diganti per-invoice di tab "Buat Invoice".</div>
+      <div class="template-grid" id="templateGridProfile"></div>
+    </div>
+  </section>
+
+  <!-- TAB: HAPUS IKLAN (PREMIUM) -->
+  <section class="panel" id="panel-lisensi">
+    <div class="card license-box">
+      <h2>Hapus Iklan — Akses Premium</h2>
+      <p style="font-size:.85rem; color:var(--ink-soft);">
+        NotaKilat gratis dipakai tanpa batas. Kalau banner dan running text promosi terasa mengganggu,
+        aktivasi kode premium sekali bayar untuk menghilangkannya secara permanen di perangkat ini.
+        Kode terikat ke <strong>Nama Usaha</strong> yang kamu isi di tab Profil Usaha — pastikan sudah
+        diisi persis sama seperti saat membeli.
+      </p>
+      <div class="field">
+        <label>Kode Premium</label>
+        <input type="text" id="licenseKeyInput" placeholder="NOTA-XXXX-XXXX">
+      </div>
+      <button class="btn btn-primary" id="activateBtn">Aktivasi</button>
+      <div id="licenseStatus" class="license-status"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>NotaKilat — by Trisna</footer>
+
+<script>
+/* ===================== STORAGE ===================== */
+const store = {
+  get(key, fallback){ try{ const v = localStorage.getItem(key); return v===null? fallback : JSON.parse(v);}catch(e){return fallback;} },
+  set(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+};
+
+/* ===================== LICENSE HASH (hanya untuk hapus iklan) ===================== */
+function simpleHash(str){
+  let hash = 0;
+  for(let i=0;i<str.length;i++){ hash = (hash << 5) - hash + str.charCodeAt(i); hash |= 0; }
+  return Math.abs(hash);
+}
+const APP_PREFIX = "NOTA";
+const SECRET_SALT = "notakilat-trisna-2026"; // harus sama dengan generate-license.js
+function expectedLicenseFor(bizName){
+  const clean = (bizName||"").trim().toUpperCase();
+  const h = simpleHash(clean + SECRET_SALT).toString(36).toUpperCase().padStart(8,"0");
+  return `${APP_PREFIX}-${h.slice(0,4)}-${h.slice(4,8)}`;
+}
+function isPremium(){
+  const bizName = (store.get("nk_profile", {}).name)||"";
+  const savedKey = store.get("nk_license_key", "");
+  if(!bizName || !savedKey) return false;
+  return savedKey === expectedLicenseFor(bizName);
+}
+
+/* ===================== TEMPLATES ===================== */
+const TEMPLATES = {
+  minimal:  { name:"Minimalis", desc:"Bersih, hitam-putih", swatch:"sw-minimal",  accent:[28,37,65],   headerBlock:false },
+  formal:   { name:"Formal",    desc:"Garis tebal, korporat", swatch:"sw-formal", accent:[28,37,65],   headerBlock:true  },
+  berwarna: { name:"Berwarna",  desc:"Aksen hijau-merah muda", swatch:"sw-berwarna", accent:[46,125,91], headerBlock:true }
+};
+let selectedTemplate = store.get("nk_template", "minimal");
+
+function renderTemplateGrid(containerId){
+  const el = document.getElementById(containerId);
+  el.innerHTML = Object.entries(TEMPLATES).map(([key, t]) => `
+    <div class="template-card ${selectedTemplate===key?'selected':''}" data-tpl="${key}">
+      <div class="swatch ${t.swatch}"></div>
+      <div class="name">${t.name}</div>
+      <div class="desc">${t.desc}</div>
+    </div>
+  `).join("");
+  el.querySelectorAll(".template-card").forEach(card=>{
+    card.addEventListener("click", ()=>{
+      selectedTemplate = card.dataset.tpl;
+      store.set("nk_template", selectedTemplate);
+      renderTemplateGrid("templateGrid");
+      renderTemplateGrid("templateGridProfile");
+    });
+  });
+}
+
+/* ===================== STATE ===================== */
+let items = [];
+let invoiceCounter = store.get("nk_counter", 0);
+
+/* ===================== INIT ===================== */
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("invoiceDate").value = todayISO();
+  loadProfile();
+  addItemRow();
+  renderHistory();
+  renderLicenseStatus();
+  renderTemplateGrid("templateGrid");
+  renderTemplateGrid("templateGridProfile");
+  initSignaturePad();
+  initAds();
+  document.getElementById("invoiceNoDisplay").textContent = nextInvoiceNo();
+  document.getElementById("todayTag").textContent = new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+
+  document.querySelectorAll("nav.tabs button").forEach(btn=>{
+    btn.addEventListener("click", ()=> switchTab(btn.dataset.tab));
+  });
+  document.getElementById("addRowBtn").addEventListener("click", addItemRow);
+  document.getElementById("saveBtn").addEventListener("click", saveInvoice);
+  document.getElementById("resetBtn").addEventListener("click", resetForm);
+  document.getElementById("saveProfileBtn").addEventListener("click", saveProfile);
+  document.getElementById("activateBtn").addEventListener("click", activateLicense);
+  document.getElementById("discountInput").addEventListener("input", renderTotals);
+  document.getElementById("taxInput").addEventListener("input", renderTotals);
+  document.getElementById("searchHist").addEventListener("input", renderHistory);
+  document.getElementById("logoInput").addEventListener("change", onLogoSelected);
+  document.getElementById("removeLogoBtn").addEventListener("click", removeLogo);
+  document.getElementById("clearSigBtn").addEventListener("click", clearSignature);
+  window.addEventListener("resize", resizeSignaturePad);
+});
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+function switchTab(name){
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("panel-"+name).classList.add("active");
+  if(name==="riwayat") renderHistory();
+  if(name==="buat") setTimeout(resizeSignaturePad, 0);
+}
+
+/* ===================== PROFILE ===================== */
+function loadProfile(){
+  const p = store.get("nk_profile", {});
+  document.getElementById("bizName").value = p.name || "";
+  document.getElementById("bizPhone").value = p.phone || "";
+  document.getElementById("bizEmail").value = p.email || "";
+  document.getElementById("bizAddress").value = p.address || "";
+  document.getElementById("bizNameHeader").textContent = p.name || "NotaKilat";
+  renderLogoPreview(p.logo || null);
+}
+function saveProfile(){
+  const existing = store.get("nk_profile", {});
+  const p = {
+    name: document.getElementById("bizName").value.trim(),
+    phone: document.getElementById("bizPhone").value.trim(),
+    email: document.getElementById("bizEmail").value.trim(),
+    address: document.getElementById("bizAddress").value.trim(),
+    logo: existing.logo || null
+  };
+  store.set("nk_profile", p);
+  document.getElementById("bizNameHeader").textContent = p.name || "NotaKilat";
+  renderLicenseStatus();
+  alert("Profil usaha disimpan.");
+}
+
+/* ===================== LOGO ===================== */
+function renderLogoPreview(dataUrl){
+  const el = document.getElementById("logoPreview");
+  el.innerHTML = dataUrl ? `<img src="${dataUrl}" alt="Logo usaha">` : `<span class="ph">Belum ada logo</span>`;
+}
+function onLogoSelected(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  if(file.size > 1024*1024){ alert("Ukuran logo maksimal 1MB. Kompres dulu gambarnya, mis. lewat tinypng.com."); e.target.value=""; return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const p = store.get("nk_profile", {});
+    p.logo = reader.result;
+    store.set("nk_profile", p);
+    renderLogoPreview(p.logo);
+    e.target.value = "";
+  };
+  reader.readAsDataURL(file);
+}
+function removeLogo(){
+  const p = store.get("nk_profile", {});
+  p.logo = null;
+  store.set("nk_profile", p);
+  renderLogoPreview(null);
+  document.getElementById("logoInput").value = "";
+}
+
+/* ===================== SIGNATURE PAD ===================== */
+let sigCtx, sigDrawing = false, sigHasContent = false;
+function initSignaturePad(){
+  const canvas = document.getElementById("sigPad");
+  sigCtx = canvas.getContext("2d");
+  resizeSignaturePad();
+
+  const pos = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+  };
+  const start = (e) => { sigDrawing = true; sigHasContent = true; const p = pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); e.preventDefault(); };
+  const move = (e) => { if(!sigDrawing) return; const p = pos(e); sigCtx.lineTo(p.x, p.y); sigCtx.strokeStyle="#1c2541"; sigCtx.lineWidth=2; sigCtx.lineCap="round"; sigCtx.stroke(); e.preventDefault(); };
+  const end = () => { sigDrawing = false; };
+
+  canvas.addEventListener("mousedown", start);
+  canvas.addEventListener("mousemove", move);
+  window.addEventListener("mouseup", end);
+  canvas.addEventListener("touchstart", start, {passive:false});
+  canvas.addEventListener("touchmove", move, {passive:false});
+  canvas.addEventListener("touchend", end);
+}
+function resizeSignaturePad(){
+  const canvas = document.getElementById("sigPad");
+  if(!canvas || !canvas.offsetWidth) return;
+  const ratio = window.devicePixelRatio || 1;
+  const prev = sigHasContent ? canvas.toDataURL() : null;
+  canvas.width = canvas.offsetWidth * ratio;
+  canvas.height = canvas.offsetHeight * ratio;
+  sigCtx = canvas.getContext("2d");
+  sigCtx.scale(ratio, ratio);
+  if(prev){
+    const img = new Image();
+    img.onload = () => sigCtx.drawImage(img, 0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    img.src = prev;
+  }
+}
+function clearSignature(){
+  const canvas = document.getElementById("sigPad");
+  sigCtx.clearRect(0, 0, canvas.width, canvas.height);
+  sigHasContent = false;
+}
+function getSignatureDataUrl(){
+  if(!sigHasContent) return null;
+  return document.getElementById("sigPad").toDataURL("image/png");
+}
+
+/* ===================== ITEM ROWS ===================== */
+function addItemRow(desc="", qty=1, price=0){
+  const id = "row_"+Date.now()+Math.random().toString(36).slice(2,6);
+  items.push({id, desc, qty, price});
+  renderItemRows();
+}
+function renderItemRows(){
+  const tbody = document.getElementById("itemRows");
+  tbody.innerHTML = "";
+  items.forEach(item=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="text" value="${escapeHtml(item.desc)}" data-field="desc" data-id="${item.id}" placeholder="Mis: Jasa servis AC 1 unit"></td>
+      <td class="qty-col"><input type="number" min="0" value="${item.qty}" data-field="qty" data-id="${item.id}"></td>
+      <td class="price-col"><input type="number" min="0" value="${item.price}" data-field="price" data-id="${item.id}"></td>
+      <td class="sub-col">${formatRp(item.qty*item.price)}</td>
+      <td><button class="del-row" data-id="${item.id}" title="Hapus baris">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll("input").forEach(inp=> inp.addEventListener("input", onItemFieldChange));
+  tbody.querySelectorAll(".del-row").forEach(btn=>{
+    btn.addEventListener("click", ()=>{ items = items.filter(i=>i.id!==btn.dataset.id); renderItemRows(); renderTotals(); });
+  });
+  renderTotals();
+}
+function onItemFieldChange(e){
+  const {field, id} = e.target.dataset;
+  const item = items.find(i=>i.id===id);
+  if(!item) return;
+  item[field] = field==="desc" ? e.target.value : Number(e.target.value)||0;
+  renderItemRows();
+}
+
+/* ===================== TOTALS ===================== */
+function renderTotals(){
+  const subtotal = items.reduce((s,i)=> s + (i.qty*i.price), 0);
+  const discount = Number(document.getElementById("discountInput").value)||0;
+  const taxPct = Number(document.getElementById("taxInput").value)||0;
+  const taxed = (subtotal - discount) * (taxPct/100);
+  const total = Math.max(0, subtotal - discount + taxed);
+  document.getElementById("sumSubtotal").textContent = formatRp(subtotal);
+  document.getElementById("sumTotal").textContent = formatRp(total);
+  return {subtotal, discount, taxPct, taxed, total};
+}
+function formatRp(n){ return "Rp " + Math.round(n).toLocaleString("id-ID"); }
+function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+
+/* ===================== SAVE / PDF ===================== */
+function nextInvoiceNo(){
+  const year = new Date().getFullYear();
+  const n = invoiceCounter + 1;
+  return `INV/${year}/${String(n).padStart(3,"0")}`;
+}
+
+function saveInvoice(){
+  const clientName = document.getElementById("clientName").value.trim();
+  if(!clientName){ alert("Isi nama klien dulu."); return; }
+  if(items.length===0 || items.every(i=>!i.desc)){ alert("Tambahkan minimal satu item."); return; }
+  if(items.some(i => i.qty <= 0 || i.price <= 0)){ alert("Qty dan harga harus lebih dari 0 untuk semua item."); return; }
+
+  const profile = store.get("nk_profile", {});
+  const totals = renderTotals();
+  const invoiceNo = nextInvoiceNo();
+
+  const invoice = {
+    id: "inv_" + Date.now() + "_" + Math.random().toString(36).slice(2,8),
+    no: invoiceNo,
+    date: document.getElementById("invoiceDate").value || todayISO(),
+    due: document.getElementById("dueDate").value || "",
+    clientName,
+    clientPhone: document.getElementById("clientPhone").value.trim(),
+    clientAddress: document.getElementById("clientAddress").value.trim(),
+    items: JSON.parse(JSON.stringify(items)),
+    note: document.getElementById("invoiceNote").value.trim(),
+    ...totals,
+    status: "belum",
+    template: selectedTemplate,
+    signature: getSignatureDataUrl(),
+    signerName: document.getElementById("signerName").value.trim(),
+    createdAt: new Date().toISOString()
+  };
+
+  invoiceCounter += 1;
+  store.set("nk_counter", invoiceCounter);
+  const hist = store.get("nk_history", []);
+  hist.unshift(invoice);
+  store.set("nk_history", hist);
+
+  generatePDF(invoice, profile);
+  resetForm();
+  alert(`Invoice ${invoiceNo} disimpan dan PDF diunduh.`);
+}
+
+function generatePDF(invoice, profile){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:"mm", format:"a4"});
+  const left = 18, right = 192;
+  const tplKey = invoice.template && TEMPLATES[invoice.template] ? invoice.template : "minimal";
+  const tpl = TEMPLATES[tplKey];
+  const [ar, ag, ab] = tpl.accent;
+  let y = 20;
+
+  if(tpl.headerBlock){
+    doc.setFillColor(ar, ag, ab);
+    doc.rect(0, 0, 210, 12, "F");
+  }
+
+  if(profile.logo){
+    try{
+      const type = profile.logo.includes("image/png") ? "PNG" : "JPEG";
+      doc.addImage(profile.logo, type, left, 18, 22, 22);
+    }catch(e){ /* logo gagal dimuat, lanjut tanpa logo */ }
+  }
+
+  const textX = profile.logo ? left + 26 : left;
+  doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.setTextColor(ar,ag,ab);
+  doc.text(profile.name || "Nama Usaha", textX, y);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(60);
+  y += 6;
+  if(profile.address){ doc.text(profile.address, textX, y); y+=5; }
+  if(profile.phone){ doc.text("Telp/WA: "+profile.phone, textX, y); y+=5; }
+  if(profile.email){ doc.text(profile.email, textX, y); y+=5; }
+
+  doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(ar,ag,ab);
+  doc.text("INVOICE", 150, 20);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(60);
+  doc.text(invoice.no, 150, 26);
+  doc.text("Tanggal: " + formatDateID(invoice.date), 150, 31);
+  if(invoice.due) doc.text("Jatuh tempo: " + formatDateID(invoice.due), 150, 36);
+
+  y = Math.max(y, profile.logo ? 44 : y) + 4;
+  doc.setDrawColor(ar,ag,ab); doc.setLineWidth(tplKey==="minimal" ? 0.2 : 0.6);
+  doc.line(left, y, right, y); y += 7;
+
+  doc.setTextColor(0);
+  doc.setFont("helvetica","bold"); doc.text("Ditagihkan kepada:", left, y); y += 5;
+  doc.setFont("helvetica","normal");
+  doc.text(invoice.clientName, left, y); y += 5;
+  if(invoice.clientAddress){ doc.text(invoice.clientAddress, left, y); y += 5; }
+  if(invoice.clientPhone){ doc.text("Telp/WA: " + invoice.clientPhone, left, y); y += 5; }
+
+  y += 4;
+  if(tpl.headerBlock){
+    doc.setFillColor(ar,ag,ab); doc.rect(left, y-4.5, right-left, 7, "F");
+    doc.setTextColor(255);
+  }else{
+    doc.setTextColor(0);
+  }
+  doc.setFont("helvetica","bold"); doc.setFontSize(9);
+  doc.text("Deskripsi", left+2, y);
+  doc.text("Qty", 130, y);
+  doc.text("Harga", 150, y);
+  doc.text("Subtotal", 178, y);
+  doc.setTextColor(0);
+  y += 2; if(!tpl.headerBlock){ doc.line(left, y, right, y); } y += 5;
+
+  doc.setFont("helvetica","normal");
+  invoice.items.forEach(it=>{
+    doc.text(String(it.desc||"-").slice(0,45), left+2, y);
+    doc.text(String(it.qty), 130, y);
+    doc.text(it.price.toLocaleString("id-ID"), 150, y);
+    doc.text((it.qty*it.price).toLocaleString("id-ID"), 178, y);
+    y += 6;
+  });
+
+  y += 2; doc.setDrawColor(ar,ag,ab); doc.line(120, y, right, y); y += 6;
+  doc.text("Subtotal", 150, y); doc.text("Rp "+invoice.subtotal.toLocaleString("id-ID"), 178, y); y += 6;
+  if(invoice.discount){ doc.text("Diskon", 150, y); doc.text("- Rp "+invoice.discount.toLocaleString("id-ID"), 178, y); y += 6; }
+  if(invoice.taxPct){ doc.text(`Pajak (${invoice.taxPct}%)`, 150, y); doc.text("Rp "+Math.round(invoice.taxed).toLocaleString("id-ID"), 178, y); y += 6; }
+  doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(ar,ag,ab);
+  doc.text("TOTAL", 150, y); doc.text("Rp "+Math.round(invoice.total).toLocaleString("id-ID"), 178, y);
+  doc.setTextColor(0);
+
+  if(invoice.note){
+    y += 12; doc.setFont("helvetica","normal"); doc.setFontSize(9);
+    doc.text("Catatan:", left, y); y += 5;
+    const noteLines = doc.splitTextToSize(invoice.note, 100);
+    noteLines.forEach((line, i) => doc.text(line, left, y + i * 5));
+    y += noteLines.length * 5 + 2;
+  }
+
+  const sigBoxY = Math.max(y + 20, 235);
+  if(invoice.signature){
+    try{ doc.addImage(invoice.signature, "PNG", 145, sigBoxY - 22, 40, 18); }catch(e){}
+  }
+  doc.setDrawColor(120); doc.setLineWidth(0.2);
+  doc.line(145, sigBoxY, 188, sigBoxY);
+  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(60);
+  doc.text(invoice.signerName || profile.name || "Tanda tangan", 145, sigBoxY + 5);
+
+  doc.setFontSize(7.5); doc.setTextColor(140);
+  doc.text("Dibuat dengan NotaKilat — by Trisna", left, 288);
+
+  doc.save(`${invoice.no.replace(/\//g,"-")}.pdf`);
+}
+function formatDateID(iso){
+  if(!iso) return "-";
+  return new Date(iso).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+}
+
+function resetForm(){
+  items = [];
+  addItemRow();
+  document.getElementById("clientName").value = "";
+  document.getElementById("clientPhone").value = "";
+  document.getElementById("clientAddress").value = "";
+  document.getElementById("invoiceDate").value = todayISO();
+  document.getElementById("dueDate").value = "";
+  document.getElementById("discountInput").value = 0;
+  document.getElementById("taxInput").value = 0;
+  document.getElementById("invoiceNote").value = "";
+  document.getElementById("signerName").value = "";
+  clearSignature();
+  document.getElementById("invoiceNoDisplay").textContent = nextInvoiceNo();
+  renderTotals();
+}
+
+/* ===================== HISTORY ===================== */
+function renderHistory(){
+  const list = document.getElementById("histList");
+  const query = (document.getElementById("searchHist")?.value||"").toLowerCase();
+  let hist = store.get("nk_history", []);
+  if(query){
+    hist = hist.filter(h => h.clientName.toLowerCase().includes(query) || h.no.toLowerCase().includes(query));
+  }
+  if(hist.length===0){
+    list.innerHTML = `<div class="empty">Belum ada invoice. Buat invoice pertamamu di tab "Buat Invoice".</div>`;
+    return;
+  }
+  list.innerHTML = hist.map((inv) => `
+    <div class="history-item">
+      <div class="meta">
+        <div class="num">${inv.no} · ${formatDateID(inv.date)} · ${TEMPLATES[inv.template]?TEMPLATES[inv.template].name:"Minimalis"}</div>
+        <div class="client">${escapeHtml(inv.clientName)}</div>
+        <div class="amt">${formatRp(inv.total)} <span class="badge ${inv.status==='lunas'?'lunas':'belum'}">${inv.status==='lunas'?'LUNAS':'BELUM LUNAS'}</span></div>
+      </div>
+      <div class="hist-actions btn-row" style="margin-top:0;">
+        <button class="btn btn-ghost btn-sm" onclick="reprintInvoice('${inv.id}')">Unduh PDF</button>
+        <button class="btn btn-wa btn-sm" onclick="sendWa('${inv.id}')">Kirim WA</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleLunas('${inv.id}')">${inv.status==='lunas'?'Tandai belum lunas':'Tandai lunas'}</button>
+      </div>
+    </div>
+  `).join("");
+}
+function reprintInvoice(id){
+  const hist = store.get("nk_history", []);
+  const inv = hist.find(h => h.id === id); if(!inv) return;
+  generatePDF(inv, store.get("nk_profile", {}));
+}
+function toggleLunas(id){
+  const hist = store.get("nk_history", []);
+  const idx = hist.findIndex(h => h.id === id);
+  if(idx===-1) return;
+  hist[idx].status = hist[idx].status === "lunas" ? "belum" : "lunas";
+  store.set("nk_history", hist);
+  renderHistory();
+}
+function sendWa(id){
+  const hist = store.get("nk_history", []);
+  const inv = hist.find(h => h.id === id); if(!inv) return;
+  const profile = store.get("nk_profile", {});
+  const text = `Halo ${inv.clientName}, berikut invoice ${inv.no} dari ${profile.name||"kami"} sebesar ${formatRp(inv.total)}. Jatuh tempo: ${inv.due?formatDateID(inv.due):"-"}. Terima kasih.`;
+  const phone = (inv.clientPhone||"").replace(/\D/g,"").replace(/^0/,"62");
+  const url = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+  window.open(url, "_blank");
+}
+
+/* ===================== PREMIUM ACTIVATION (hapus iklan) ===================== */
+function activateLicense(){
+  const bizName = document.getElementById("bizName").value.trim();
+  if(!bizName){ alert("Isi dan simpan Nama Usaha di tab Profil Usaha terlebih dahulu."); return; }
+  const input = document.getElementById("licenseKeyInput").value.trim().toUpperCase();
+  const expected = expectedLicenseFor(bizName);
+  if(input === expected){
+    store.set("nk_license_key", input);
+    renderLicenseStatus();
+    hideAds();
+    alert("Premium aktif. Iklan sudah disembunyikan di perangkat ini. Terima kasih!");
+  }else{
+    alert("Kode tidak cocok dengan Nama Usaha. Periksa kembali ejaan nama usaha dan kode premium.");
+  }
+}
+function renderLicenseStatus(){
+  const el = document.getElementById("licenseStatus");
+  if(isPremium()){
+    el.style.background = "#e3efe8"; el.style.color = "#2e7d5b";
+    el.textContent = "Status: Premium aktif — iklan tersembunyi di perangkat ini.";
+  }else{
+    el.style.background = "#f7e3e3"; el.style.color = "#8a2f2f";
+    el.textContent = "Status: belum aktif — versi gratis (dengan iklan).";
+  }
+}
+
+/* ===================== MODUL IKLAN ===================== */
+(function(){
+  const REMOTE_CONFIG_URL = "/ads-config.json";
+  const CACHE_KEY = "tk_ads_cache_v1";
+  const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+  const FETCH_TIMEOUT_MS = 4000;
+
+  function getInlineConfig(){
+    try{
+      const el = document.getElementById("tkAdsInlineConfig");
+      return el ? JSON.parse(el.textContent) : null;
+    }catch(e){ return null; }
+  }
+
+  function getCache(){
+    try{
+      const raw = localStorage.getItem(CACHE_KEY);
+      if(!raw) return null;
+      const parsed = JSON.parse(raw);
+      if(Date.now() - parsed.fetchedAt > CACHE_TTL_MS) throw null;
+      return parsed.data;
+    }catch(e){ return null; }
+  }
+  function setCache(data){
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ fetchedAt: Date.now(), data })); }catch(e){}
+  }
+  function trackClick(id){
+    try{
+      const clicks = JSON.parse(localStorage.getItem("tk_ads_clicks") || "{}");
+      clicks[id] = (clicks[id] || 0) + 1;
+      localStorage.setItem("tk_ads_clicks", JSON.stringify(clicks));
+    }catch(e){}
+  }
+
+  function renderBanner(banner){
+    const el = document.getElementById("tkAdsBanner");
+    if(!banner){ el.style.display = "none"; return; }
+    const img = document.getElementById("tkAdsBannerImg");
+    const link = document.getElementById("tkAdsBannerLink");
+
+    if(banner.image){
+      img.src = banner.image;
+      img.alt = banner.text || "Promo";
+      link.href = banner.link || "#";
+      link.onclick = () => trackClick(banner.id);
+      el.style.display = "block";
+    }else{
+      el.style.display = "none";
+    }
+  }
+  function renderMarquee(items){
+    const wrap = document.getElementById("tkAdsMarquee");
+    if(!items || items.length === 0){ wrap.style.display = "none"; return; }
+    const track = document.getElementById("tkAdsTrack");
+    track.innerHTML = items.map(it =>
+      `<a href="${it.link || '#'}" target="_blank" rel="noopener" data-id="${it.id}">${escapeHtml(it.text)}</a>`
+    ).join("");
+    track.querySelectorAll("a").forEach(a=>{
+      a.addEventListener("click", () => trackClick(a.dataset.id));
+    });
+    wrap.style.display = "block";
+  }
+
+  function hideAds(){
+    document.getElementById("tkAdsBanner").style.display = "none";
+    document.getElementById("tkAdsMarquee").style.display = "none";
+  }
+  window.hideAds = hideAds; // dipanggil juga setelah aktivasi premium berhasil
+
+  function applyAds(data){
+    if(isPremium()){ hideAds(); return; }
+    if(!data) return;
+    renderBanner(data.banner);
+    renderMarquee(data.running_text);
+  }
+
+  async function fetchRemote(){
+    try{
+      const controller = new AbortController();
+      const timeout = setTimeout(()=>controller.abort(), FETCH_TIMEOUT_MS);
+      const res = await fetch(REMOTE_CONFIG_URL + "?t=" + Date.now(), { signal: controller.signal, cache: "no-store" });
+      clearTimeout(timeout);
+      if(!res.ok) return null;
+      const data = await res.json();
+      setCache(data);
+      return data;
+    }catch(e){
+      return null;
+    }
+  }
+
+  window.initAds = async function initAds(){
+    if(isPremium()) return;
+    const inline = getInlineConfig();
+    const cached = getCache();
+    applyAds(cached || inline);
+
+    const fresh = await fetchRemote();
+    if(fresh) applyAds(fresh);
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "banner": {
+    "id": "banner-tokopos-laundrypos",
+    "image": "/images/banner-tokopos.jpg",
+    "text": "Punya usaha toko atau laundry juga? Coba TokoPOS & LaundryPOS — kasir offline, sekali bayar.",
+    "link": "https://wa.me/628562717803?text=Halo%2C%20saya%20mau%20tanya%20TokoPOS%20%2F%20LaundryPOS"
+  },
+  "running_text": [
+    { "id": "rt-tokopos", "text": "📦 TokoPOS — kasir toko offline, sekali bayar, seumur hidup, Bisa jalan tanpa akses internet", "link": "https://wa.me/628562717803?text=Halo%2C%20mau%20tanya%20TokoPOS" },
+    { "id": "rt-laundrypos", "text": "🧺 LaundryPOS — kelola antrian cucian & notifikasi Whatsapp ke pelanggan", "link": "https://wa.me/628562717803?text=Halo%2C%20mau%20tanya%20LaundryPOS" }
+  ]
+}
