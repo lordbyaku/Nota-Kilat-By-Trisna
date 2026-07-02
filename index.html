@@ -134,12 +134,12 @@
 
   /* ============ MODUL IKLAN ============ */
   .tk-ads-banner{
-    display:none; max-width:980px; margin:4px auto 0; border-radius:10px; overflow:hidden;
+    display:none; max-width:980px; margin:16px auto 0; border-radius:10px; overflow:hidden;
     background:var(--carbon-soft); position:relative;
   }
-  .tk-ads-banner a{ display:block; line-height:0; }
-  .tk-ads-banner img{ width:100%; height:auto; display:block; aspect-ratio:4/1; object-fit:cover; }
-  @media (max-width:640px){ .tk-ads-banner img{ aspect-ratio:3/1; } }
+  .tk-ads-banner a{ display:block; line-height:0; outline:none; }
+  .tk-ads-banner img{ width:100%; height:auto; display:block; aspect-ratio:2/1; object-fit:cover; }
+  @media (max-width:640px){ .tk-ads-banner img{ aspect-ratio:2/1; } }
 
   .tk-ads-marquee{
     display:none; overflow:hidden; white-space:nowrap; background:var(--ink); color:#fff;
@@ -569,11 +569,31 @@ function renderItemRows(){
     `;
     tbody.appendChild(tr);
   });
-  tbody.querySelectorAll("input").forEach(inp=> inp.addEventListener("input", onItemFieldChange));
+  tbody.querySelectorAll("input").forEach(inp=>{
+    inp.addEventListener("input", onItemFieldChange);
+    inp.addEventListener("keydown", onItemKeyDown);
+  });
   tbody.querySelectorAll(".del-row").forEach(btn=>{
     btn.addEventListener("click", ()=>{ items = items.filter(i=>i.id!==btn.dataset.id); renderItemRows(); renderTotals(); });
   });
   renderTotals();
+}
+function onItemKeyDown(e){
+  if(e.key !== "Enter") return;
+  e.preventDefault();
+  const {field, id} = e.target.dataset;
+  const inputs = Array.from(document.querySelectorAll("#itemRows input"));
+  const idx = inputs.indexOf(e.target);
+  if(field === "desc" || field === "qty"){
+    const next = inputs[idx + 1];
+    if(next) next.focus();
+  }else if(field === "price"){
+    addItemRow();
+    requestAnimationFrame(()=>{
+      const newInputs = document.querySelectorAll("#itemRows input");
+      if(newInputs.length > 0) newInputs[newInputs.length - 3].focus();
+    });
+  }
 }
 function onItemFieldChange(e){
   const {field, id} = e.target.dataset;
