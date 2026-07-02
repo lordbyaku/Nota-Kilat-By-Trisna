@@ -602,7 +602,7 @@ function renderTotals(){
   return {subtotal, discount, taxPct, taxed, total};
 }
 function formatRp(n){ return "Rp " + Math.round(n).toLocaleString("id-ID"); }
-function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
 
 /* ===================== SAVE / PDF ===================== */
 function nextInvoiceNo(){
