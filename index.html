@@ -579,8 +579,15 @@ function onItemFieldChange(e){
   const {field, id} = e.target.dataset;
   const item = items.find(i=>i.id===id);
   if(!item) return;
+  const prevQty = item.qty, prevPrice = item.price;
   item[field] = field==="desc" ? e.target.value : Number(e.target.value)||0;
-  renderItemRows();
+
+  if(field !== "desc" && (item.qty !== prevQty || item.price !== prevPrice)){
+    const tr = e.target.closest("tr");
+    const subCell = tr && tr.querySelector("td:last-child");
+    if(subCell) subCell.textContent = formatRp(item.qty * item.price);
+  }
+  renderTotals();
 }
 
 /* ===================== TOTALS ===================== */
